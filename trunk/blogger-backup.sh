@@ -16,7 +16,7 @@ export LD_LIBRARY_PATH
 
 ### cURL flag for HTTP Proxy usage
 ### Unset this var to not use a proxy
-[ x"$PROXYFLAG" = x ] && PROXYFLAG="-x proxy:3128"
+[ x"$PROXYFLAG" = x ] && PROXYFLAG="-x http.proxy.com:3128"
 
 ### Where should we save the backups?
 [ x"$DATADIR" = x ] && DATADIR="~/blogger-backup"

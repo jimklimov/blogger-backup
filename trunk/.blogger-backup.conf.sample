@@ -1,7 +1,9 @@
 ### Example config file for blogger-backup.sh
-PROXYFLAG="-x http.proxy.com:3128"
 DATADIR="~/blogger-backup"
 AUTH_EMAIL='username@gmail.com'
 AUTH_PASS='gmailPassw0rd'
 BLOGGER_LIST="12345678901234567:myblogname"
 
+### Unset this var to not use a proxy
+PROXYFLAG="-x http.proxy.com:3128"
+#PROXYFLAG=""
