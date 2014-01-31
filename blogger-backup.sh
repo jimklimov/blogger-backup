@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### Backs up a list of Blogspot sites where you have admin access.
-### (C) Nov 2011 by Jim Klimov with help from sites:
+### (C) Nov 2011, Jan 2014 by Jim Klimov with help from sites:
 ###   http://code.google.com/apis/gdata/articles/using_cURL.html
 ###   http://code.google.com/apis/gdata/faq.html#clientlogin
 ### Suitable for crontab usage like this:
@@ -86,8 +86,11 @@ fi
 ### Try to get a Google AUTH token for Blogspot
 AUTH="`curl -k $PROXYFLAG --silent https://www.google.com/accounts/ClientLogin --data-urlencode Email=${AUTH_EMAIL} --data-urlencode Passwd=${AUTH_PASS} -d accountType=GOOGLE -d source=Google-cURL-Example -d service=blogger | egrep -i '^auth=' | head -1`" || AUTH=""
 if [ x"$AUTH" = x ]; then
-	echo "FATAL: Can't auth to google">&2
-	exit 1
+	AUTH="`curl -k $PROXYFLAG --silent https://www.google.com/accounts/ClientLogin --data-urlencode Email=${AUTH_EMAIL} --data-urlencode Passwd=${AUTH_PASS} -d accountType=GOOGLE -d source=Google-cURL-Example -d service=blogger | egrep -i '^auth=' | head -1`" || AUTH=""
+	if [ x"$AUTH" = x ]; then
+		echo "FATAL: Can't auth to google">&2
+		exit 1
+	fi
 fi
 
 if [ x"$BLOGGER_LIST" = x ]; then
@@ -104,8 +107,9 @@ blogExport() {
 	### then we don't want to keep an identical newer backup file.
 	LASTFILE="`ls -1tr ${DATADIR}/backup-blogger-${HUMAN_NAME}.*.xml | tail -1`"
 
-	curl -k $PROXYFLAG --silent --header "Authorization: GoogleLogin $AUTH" \
-        "http://www.blogger.com/feeds/${BLOG_ID}/archive" \
+	curl -k $PROXYFLAG --silent --location \
+	  --header "Authorization: GoogleLogin $AUTH" \
+          "http://www.blogger.com/feeds/${BLOG_ID}/archive" \
 	> "$DATADIR/backup-blogger-${HUMAN_NAME}.$TIMESTAMP.xml" && \
         [ x"$LASTFILE" != x -a x"$TIMESTAMP" != xlast ] && \
         gdiff -q "$LASTFILE" "$DATADIR/backup-blogger-${HUMAN_NAME}.$TIMESTAMP.xml" && \
