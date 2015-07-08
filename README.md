@@ -23,9 +23,11 @@ Sometime back in 2011 I was writing a lot of blog text while postprocessing
 our very interesting family trip, to save and share our experiences. While
 I was editing the posts with some fixes here and there, the Blogger servers
 had some hiccup, blogs were frozen for a week and ultimately servers were
-rolled back to a days before my wave of editorial fixes. I never got to redo
-them again (these are such small perfective things you might never remember
-again... and prohibitively time-consuming to re-read everything and reporoduce).
+rolled back to a few days before my wave of editorial fixes. In the end,
+I never got to redo them again (these are such small perfective things you
+might never remember again... and prohibitively time-consuming to re-read
+everything and reporoduce).
+
 Google never said "sorry" (some of their engineers did, however, while trying
 to help and/or not keep users in the dark via the engineering blog), and never
 provided the backup snapshots of the blogs, nor good tools to do the backup.

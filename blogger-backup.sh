@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### Backs up a list of Blogspot sites where you have admin access.
-### (C) Nov 2011, Jan 2014 by Jim Klimov with help from sites:
+### (C) Nov 2011, Jan 2014 by Jim Klimov (License: MIT) with help from sites:
 ###   http://code.google.com/apis/gdata/articles/using_cURL.html
 ###   http://code.google.com/apis/gdata/faq.html#clientlogin
 ### Suitable for crontab usage like this:
