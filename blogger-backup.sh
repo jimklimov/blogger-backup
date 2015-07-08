@@ -1,7 +1,9 @@
 #!/bin/bash
 
 ### Backs up a list of Blogspot sites where you have admin access.
-### (C) Nov 2011, Jan 2014 by Jim Klimov (License: MIT) with help from sites:
+###   https://github.com/jimklimov/blogger-backup
+### (C) Nov 2011, Jan 2014, Jun 2015 by Jim Klimov (License: MIT)
+### with help from sites for older ClientLogin version:
 ###   http://code.google.com/apis/gdata/articles/using_cURL.html
 ###   http://code.google.com/apis/gdata/faq.html#clientlogin
 ### Suitable for crontab usage like this:
@@ -15,7 +17,7 @@ LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib:/usr/sfw/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH
 
 ### cURL flag for HTTP Proxy usage
-### Unset this var to not use a proxy
+### Unset this var e.g. to a space to not use a proxy
 [ x"$PROXYFLAG" = x ] && PROXYFLAG="-x http.proxy.com:3128"
 
 ### Where should we save the backups?
@@ -83,14 +85,32 @@ if [ x"$BLOGGER_LIST_ALT" != x ]; then
     BLOGGER_LIST="$BLOGGER_LIST_ALT"
 fi
 
-### Try to get a Google AUTH token for Blogspot
-AUTH="`curl -k $PROXYFLAG --silent https://www.google.com/accounts/ClientLogin --data-urlencode Email=${AUTH_EMAIL} --data-urlencode Passwd=${AUTH_PASS} -d accountType=GOOGLE -d source=Google-cURL-Example -d service=blogger | egrep -i '^auth=' | head -1`" || AUTH=""
-if [ x"$AUTH" = x ]; then
-	AUTH="`curl -k $PROXYFLAG --silent https://www.google.com/accounts/ClientLogin --data-urlencode Email=${AUTH_EMAIL} --data-urlencode Passwd=${AUTH_PASS} -d accountType=GOOGLE -d source=Google-cURL-Example -d service=blogger | egrep -i '^auth=' | head -1`" || AUTH=""
+CURL() {
+	curl -k $PROXYFLAG --silent "$@"
+}
+
+AUTH_TYPE=""
+auth_ClientLogin() {
+	### Try to get a Google AUTH token for Blogspot
+	### with simple ClientLogin (obsolete in May 2015)
+	AUTH="`CURL https://www.google.com/accounts/ClientLogin --data-urlencode Email=${AUTH_EMAIL} --data-urlencode Passwd=${AUTH_PASS} -d accountType=GOOGLE -d source=Google-cURL-Example -d service=blogger | egrep -i '^auth=' | head -1`" || AUTH=""
 	if [ x"$AUTH" = x ]; then
-		echo "FATAL: Can't auth to google">&2
-		exit 1
+		#### Retry once for hiccups
+		AUTH="`CURL https://www.google.com/accounts/ClientLogin --data-urlencode Email=${AUTH_EMAIL} --data-urlencode Passwd=${AUTH_PASS} -d accountType=GOOGLE -d source=Google-cURL-Example -d service=blogger | egrep -i '^auth=' | head -1`" || AUTH=""
+		if [ x"$AUTH" = x ]; then
+			echo "FATAL: Can't auth to google via ClientLogin">&2
+			return 1
+		fi
 	fi
+	AUTH_TYPE="GoogleLogin"
+}
+
+auth_ClientLogin || \
+exit $?
+
+if [ x"$AUTH_TYPE" = x ]; then
+	echo "FATAL: Not logged into Google services! Quitting..." >&2
+	exit 1
 fi
 
 if [ x"$BLOGGER_LIST" = x ]; then
@@ -107,8 +127,8 @@ blogExport() {
 	### then we don't want to keep an identical newer backup file.
 	LASTFILE="`ls -1tr ${DATADIR}/backup-blogger-${HUMAN_NAME}.*.xml | tail -1`"
 
-	curl -k $PROXYFLAG --silent --location \
-	  --header "Authorization: GoogleLogin $AUTH" \
+	CURL --location \
+	  --header "Authorization: ${AUTH_TYPE} $AUTH" \
           "http://www.blogger.com/feeds/${BLOG_ID}/archive" \
 	> "$DATADIR/backup-blogger-${HUMAN_NAME}.$TIMESTAMP.xml" && \
         [ x"$LASTFILE" != x -a x"$TIMESTAMP" != xlast ] && \
