@@ -294,6 +294,7 @@ requestBlog() {
         GoogleLogin|OAuth|Bearer)
             CURL --location \
                 --header "Authorization: ${AUTH_TYPE} ${AUTH_TOKEN}" \
+                --header "GData-Version: 2" \
                 "http://www.blogger.com/feeds/${BLOG_ID}/archive"
             return $?
             ;;
