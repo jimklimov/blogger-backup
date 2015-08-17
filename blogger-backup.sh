@@ -251,7 +251,7 @@ auth_OAuth20() {
     fi
 
     if echo "$RESPONSE" | egrep -i 'error|invalid_token' >/dev/null ; then
-        echo "INFO: AUTH_TOKEN for google OAuth2.0 has expired, refreshing...">&2
+        echo "INFO: AUTH_TOKEN for google OAuth2.0 has expired, refreshing..."
 
         RESPONSE="`CURL -d "client_secret=$AUTH_CLIENTSECRET&grant_type=refresh_token&refresh_token=$REFR_TOKEN&client_id=$AUTH_CLIENTID" https://accounts.google.com/o/oauth2/token`" && \
         AUTH_TOKEN="`echo "$RESPONSE" | $JSON_SH -b -x 'access_token' | awk '{print $2}' | sed 's,^"\(.*\)"$,\1,'`" && \
