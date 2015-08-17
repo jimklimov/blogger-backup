@@ -1,8 +1,22 @@
 ### Example config file for blogger-backup.sh
 DATADIR="~/blogger-backup"
-AUTH_EMAIL='username@gmail.com'
-AUTH_PASS='gmailPassw0rd'
-BLOGGER_LIST="12345678901234567:myblogname"
+BLOGGER_LIST="12345678901234567:myblogname 98765432101234567:myotherblog"
+
+### You can try using all AUTH_METHODS, but the ClientLogin is disabled
+### since May 2015, and API Key is limited to public blogs and a more
+### difficult protocol that has not been fully implemented to traverse
+### all the blog entries and comments over multiple requests ;)
+#AUTH_METHODS="auth_ClientLogin auth_OAuth20"
+#AUTH_METHODS="auth_ClientLogin"
+#AUTH_EMAIL='username@gmail.com'
+#AUTH_PASS='gmailPassw0rd'
+
+AUTH_METHODS="auth_OAuth20"
+AUTH_CLIENTID='123456-abcdef.apps.googleusercontent.com'
+AUTH_CLIENTSECRET='1a2b3c--F6D5E4'
+
+#AUTH_METHODS="auth_APIKey"
+#AUTH_SERVERAPIKEY='AbC-123'
 
 ### Unset this var to not use a proxy
 PROXYFLAG="-x http.proxy.com:3128"
