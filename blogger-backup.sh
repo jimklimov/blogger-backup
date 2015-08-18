@@ -1,6 +1,9 @@
 #!/bin/bash
 
 ### Backs up a list of Blogspot sites where you have admin access.
+### NOTE: Does not compress exported files, because this makes diffing
+### vs. last exported piece more simple, and I have a compressed ZFS,
+### so I can afford to care a bit less about space implications :-)
 ### Can authenticate with OAuth 2.0 (you must pre-set it up according to
 ### the docs), or GoogleLogin (deprecated) or API Keys (limited usability)
 ###   https://github.com/jimklimov/blogger-backup
@@ -20,7 +23,8 @@
 ###   http://stackoverflow.com/questions/18244110/use-bash-curl-with-oauth-to-return-google-apps-user-account-date
 #
 ### I created an "API Project" in Google API interface and enabled the
-### Blogger API 3.0 there. Actual credentials following the routine below
+### Blogger API 3.0 there (NOTE: might not even be needed, considering use of
+### Blogger Feeds directly). Actual credentials following the routine below
 ### were created in that project. Paraphrasing some comments from
 ### http://codeseekah.com/2013/12/21/headless-google-drive-uploads/ :
 # I managed to create the API key using your script
@@ -34,7 +38,9 @@
 # development dashboard. 
 ###
 ### Also I've tried to use a "Server" "API Key" but only could export the
-### public blog entries as a result of search query. Better than nothing ;)
+### public blog entries as a result of search query, and that requires a
+### sophisticated protocol to track all posts and comments...
+### Better than nothing if all else fails, so some foundation is here ;)
 #
 ### Suitable for crontab usage like this:
 ###   0 * * * * [ -x /home/USERNAME/blogger-backup.sh ] && /home/USERNAME/blogger-backup.sh >/dev/null
