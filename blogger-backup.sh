@@ -292,10 +292,12 @@ requestBlog() {
 
     case "$AUTH_TYPE" in
         GoogleLogin|OAuth|Bearer)
+            # Add a trailing newline to make diff happy
             CURL --location \
                 --header "Authorization: ${AUTH_TYPE} ${AUTH_TOKEN}" \
                 --header "GData-Version: 2" \
-                "http://www.blogger.com/feeds/${BLOG_ID}/archive"
+                "http://www.blogger.com/feeds/${BLOG_ID}/archive" && \
+            echo ""
             return $?
             ;;
         X-GoogleOAuth)
