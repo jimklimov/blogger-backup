@@ -45,6 +45,8 @@
 ### Suitable for crontab usage like this:
 ###   0 * * * * [ -x /home/USERNAME/blogger-backup.sh ] && /home/USERNAME/blogger-backup.sh >/dev/null
 ### Don't forget to use config files, see the attached sample file.
+### TODO: Use return/exit codes in a less haphazard manner, so they have
+### a better diagnostic meaning than just "something non-zero" :)
 
 ### PATHs to extra programs like gdate, gdiff and curl
 PATH="/bin:/usr/local/bin:/opt/COSac/bin:/usr/sfw/bin:$PATH"
@@ -325,48 +327,81 @@ requestBlog() {
 }
 
 blogExport() {
-    BLOG_ID="`echo $1 | ( IFS=: read _B _H; echo "$_B")`"
-    HUMAN_NAME="`echo $1 | ( IFS=: read _B _H; echo "$_H")`"
+    BLOG_ID="`echo "$1" | ( IFS=: read _B _H; echo "$_B")`"
+    HUMAN_NAME="`echo "$1" | ( IFS=: read _B _H; echo "$_H")`"
+    [ -z "$TRY_COUNT" ] && TRY_COUNT=1
 
     ### Most recent of previous backups; if there were no changes,
     ### then we don't want to keep an identical newer backup file.
     LASTFILE="`ls -1dtr ${DATADIR}/backup-blogger-${HUMAN_NAME}.*${BLOG_EXT} | tail -1`"
+    NEWFILE="$DATADIR/backup-blogger-${HUMAN_NAME}.$TIMESTAMP${BLOG_EXT}"
 
-    requestBlog \
-        > "$DATADIR/backup-blogger-${HUMAN_NAME}.$TIMESTAMP${BLOG_EXT}" && \
+    requestBlog > "$NEWFILE" && [ -s "$NEWFILE" ] || \
+        { echo "=== ${HUMAN_NAME}: Error exporting the blog, removing new copy" >&2
+          rm -f "$NEWFILE"; return 1; }
+    # At this point we had no CURL errors and got a nonempty file
+
+    # TODO: Parsing "ls" might be faster though maybe less portable
+    # Anyhow, file data is cached at this moment so should not be dead-slow
+    if [ `wc -c < "$NEWFILE"` -lt 500 ] 2>/dev/null && \
+       grep 'Not Found' < "$NEWFILE" | grep 'Error 404' \
+    ; then
+        echo "=== ${HUMAN_NAME}: Got an HTTP-404 (Not found) error when exporting the blog"
+        if [ "$TRY_COUNT" -lt 2 ]; then
+            ### We have a suggested hourly schedule.
+            ### And OAuth token lifetime is 3600s.
+            ### These may interact somehow funny ;)
+            echo "INFO: Will try to re-authenticate (maybe token expired?) and re-export, attempt $TRY_COUNT..."
+            $GOOD_AUTH_METHOD && \
+            TRY_COUNT=$(($TRY_COUNT+1)) blogExport "$@"
+            return $?
+        else
+            echo "=== ${HUMAN_NAME}: Got an HTTP-404 (Not found) error when exporting the blog and could not fix it" >&2
+            rm -f "$NEWFILE"
+            return 1
+        fi
+    fi
+
     [ x"$LASTFILE" != x -a x"$TIMESTAMP" != xlast ] && \
-    diff "$LASTFILE" "$DATADIR/backup-blogger-${HUMAN_NAME}.$TIMESTAMP${BLOG_EXT}" >/dev/null && \
+    diff "$LASTFILE" "$NEWFILE" >/dev/null && \
     echo "=== ${HUMAN_NAME}: Matches last available backup, removing new copy" && \
-    rm -f "$DATADIR/backup-blogger-${HUMAN_NAME}.$TIMESTAMP${BLOG_EXT}" 
+    rm -f "$NEWFILE"
 
     ls -1d "$DATADIR/backup-blogger-${HUMAN_NAME}."*${BLOG_EXT} | tail -3
 }
 
+###########################################################################
+### The logic skeleton: try to log into google, try to export data, done
+
+GOOD_AUTH_METHOD=""
 for A in $AUTH_METHODS; do
     case "$A" in
         auth_ClientLogin|auth_OAuth20|auth_APIKey)
-            "$A" && break ;;
-        *) echo "FATAL: Unknown auth method requested (see script for supported methods): '$A'" >&2
+            "$A" && GOOD_AUTH_METHOD="$A" && break ;;
+        *) echo "FATAL: Unknown auth method requested (see script for supported AUTH_METHODS): '$A'" >&2
             exit 3
             ;;
     esac
 done
 
-if [ x"$AUTH_TYPE" = x ]; then
+if [ x"$AUTH_TYPE" = x ] || [ x"$GOOD_AUTH_METHOD" = x ]; then
     echo "FATAL: Not logged into Google services! Quitting..." >&2
     exit 1
 fi
 
+echo "INFO: Logged in to Google/Blogspot with ${GOOD_AUTH_METHOD}, got token: ${AUTH_TOKEN} (type ${AUTH_TYPE})"
+
 if [ x"$BLOGGER_LIST" = x ]; then
-    echo "Logged in to Google/Blogspot, got token: ${AUTH_TOKEN}" >&2
     echo "FATAL: No BLOGGER_LIST is configured, thus nothing to do! Quitting..." >&2
     exit 2
 fi
 
+_RESULT=0
 for BLOG in $BLOGGER_LIST; do
-    blogExport "$BLOG"
+    blogExport "$BLOG" || _RESULT=$?
 done
 
 ### To unwind a huge single-line XML (e.g. for diff'ing) you may want this:
 ### tidy -xml -utf8 -indent -quiet < backup-blogger-myblogname.20111123T234153Z.xml > b
 
+exit $_RESULT
