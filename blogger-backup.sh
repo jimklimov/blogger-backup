@@ -167,6 +167,9 @@ fi
 
 CURL() {
     curl -k $PROXYFLAG --silent "$@"
+    CURLRES=$?
+    [ $CURLRES != 0 ] && echo "ERROR: curl returned code $CURLRES" >&2
+    return $CURLRES
 }
 
 ### A dictionary value used in Google headers
@@ -344,7 +347,8 @@ blogExport() {
     # TODO: Parsing "ls" might be faster though maybe less portable
     # Anyhow, file data is cached at this moment so should not be dead-slow
     if [ `wc -c < "$NEWFILE"` -lt 500 ] 2>/dev/null && \
-       grep 'Not Found' < "$NEWFILE" | grep 'Error 404' \
+       { { grep 'Not Found' < "$NEWFILE" && grep 'Error 404' < "$NEWFILE" ; } || \
+         { grep 'Service Unavailable' < "$NEWFILE" && grep 'Error 50' < "$NEWFILE" ; } ; } \
     ; then
         echo "=== ${HUMAN_NAME}: Got an HTTP-404 (Not found) error when exporting the blog"
         if [ "$TRY_COUNT" -lt 2 ]; then
